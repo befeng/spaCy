@@ -61,7 +61,7 @@ class TokenVectorEncoder(object):
                 for j, tag in enumerate(gold.tags):
                     ids[j] = docs[0].vocab.morphology.tag_names.index(tag)
                     idx += 1
-                    self.tagger.ops.xp.scatter_add(losses[start:idx], ids, -1.0)
+                self.tagger.ops.xp.scatter_add(losses[start:idx], ids, -1.0)
             else:
                 for j, tag in enumerate(gold.tags):
                     tag_id = docs[0].vocab.morphology.tag_names.index(tag)
