@@ -13,6 +13,5 @@ cdef class Parser:
     cdef readonly object model
     cdef readonly TransitionSystem moves
     cdef readonly object cfg
-    cdef public object feature_maps
 
     #cdef int parseC(self, TokenC* tokens, int length, int nr_feat) nogil

@@ -18,8 +18,8 @@ import spacy.attrs
 import io
 from thinc.neural.ops import CupyOps
 from thinc.neural import Model
-from spacy.es import Spanish
 from spacy.attrs import POS
+from spacy.es import Spanish
 
 
 from thinc.neural import Model
@@ -150,15 +150,20 @@ def main(lang_name, train_loc, dev_loc, model_dir, clusters_loc=None):
                 for tag in tags:
                     vocab.morphology.tag_map[tag] = {POS: tag.split('__', 1)[0]}
     tagger = Tagger(vocab)
-    encoder = TokenVectorEncoder(vocab, width=64)
+    encoder = TokenVectorEncoder(vocab)
     parser = DependencyParser(vocab, actions=actions, features=features, L1=0.0)
 
     Xs, ys = organize_data(vocab, train_sents)
     dev_Xs, dev_ys = organize_data(vocab, dev_sents)
+    Xs = Xs[:1000]
+    ys = ys[:1000]
+    dev_Xs = Xs #dev_Xs[:1000]
+    dev_ys = ys #dev_ys[:1000]
     with encoder.model.begin_training(Xs[:100], ys[:100]) as (trainer, optimizer):
         docs = list(Xs)
         for doc in docs:
             encoder(doc)
+        parser.begin_training(docs, ys)
         nn_loss = [0.]
         def track_progress():
             with encoder.tagger.use_params(optimizer.averages):
@@ -176,26 +181,15 @@ def main(lang_name, train_loc, dev_loc, model_dir, clusters_loc=None):
             tokvecs, upd_tokvecs = encoder.begin_update(docs)
             for doc, tokvec in zip(docs, tokvecs):
                 doc.tensor = tokvec
-            d_tokvecs = parser.update(docs, golds, sgd=optimizer)
+            d_tokvecs, loss = parser.update(docs, golds, sgd=optimizer)
             upd_tokvecs(d_tokvecs, sgd=optimizer)
             encoder.update(docs, golds, sgd=optimizer)
-    nlp = LangClass(vocab=vocab, parser=parser)
-    scorer = score_model(vocab, encoder, parser, read_conllx(dev_loc))
-    print('%d:\t%.3f\t%.3f\t%.3f' % (itn, scorer.uas, scorer.las, scorer.tags_acc))
+            nn_loss[-1] += loss
+    nlp = LangClass(vocab=vocab, tagger=tagger, parser=parser)
     #nlp.end_training(model_dir)
-    #scorer = score_model(vocab, tagger, parser, read_conllx(dev_loc))
-    #print('%d:\t%.3f\t%.3f\t%.3f' % (itn, scorer.uas, scorer.las, scorer.tags_acc))
+    scorer = score_model(vocab, tagger, parser, read_conllx(dev_loc))
+    print('%d:\t%.3f\t%.3f\t%.3f' % (itn, scorer.uas, scorer.las, scorer.tags_acc))
 
 
 if __name__ == '__main__':
-    import cProfile
-    import pstats
-    if 1:
-        plac.call(main)
-    else:
-        cProfile.runctx("plac.call(main)", globals(), locals(), "Profile.prof")
-    s = pstats.Stats("Profile.prof")
-    s.strip_dirs().sort_stats("time").print_stats()
-
-
     plac.call(main)
