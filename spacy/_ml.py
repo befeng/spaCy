@@ -37,9 +37,15 @@ def build_debug_model(state2vec, width, depth, nr_class):
     with Model.define_operators({'>>': chain, '**': clone}):
         model = (
             state2vec
-            #>> Maxout(width)
-            >> Maxout(nr_class)
+            >> zero_init(Affine(nr_class))
         )
+    return model
+
+
+def zero_init(model):
+    def _hook(self, X, y=None):
+        self.W.fill(0)
+    model.on_data_hooks.append(_hook)
     return model
 
 
