@@ -177,8 +177,10 @@ def flatten(seqs, drop=0.):
     return X, finish_update
 
 
-def build_tok2vec(lang, width, depth=2, embed_size=1000):
+def build_tok2vec(lang, token_vector_width, depth=2, embed_size=1000, **_):
     cols = [ID, LOWER, PREFIX, SUFFIX, SHAPE, TAG]
+    width = token_vector_width
+    assert width is not None, width
     with Model.define_operators({'>>': chain, '|': concatenate, '**': clone}):
         #static = get_col(cols.index(ID))     >> StaticVectors(lang, width)
         lower = get_col(cols.index(LOWER))     >> HashEmbed(width, embed_size)

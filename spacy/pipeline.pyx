@@ -21,13 +21,15 @@ from .attrs import DEP, ENT_TYPE
 
 class TokenVectorEncoder(object):
     '''Assign position-sensitive vectors to tokens, using a CNN or RNN.'''
-    def __init__(self, vocab, **cfg):
+    def __init__(self, vocab, token_vector_width, **cfg):
         self.vocab = vocab
-        self.model = build_tok2vec(vocab.lang, 64, **cfg)
+        self.model = build_tok2vec(vocab.lang, token_vector_width,
+                                   **cfg)
         self.tagger = chain(
                         self.model,
                         flatten,
-                        Softmax(self.vocab.morphology.n_tags, 64))
+                        Softmax(self.vocab.morphology.n_tags,
+                                token_vector_width))
 
     def __call__(self, doc):
         doc.tensor = self.model([doc])[0]
